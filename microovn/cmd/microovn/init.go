@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/canonical/lxd/lxd/util"
 	"github.com/canonical/lxd/shared"
@@ -53,7 +54,7 @@ func (c *cmdInit) wantsCustomEncapsulationIP() (string, string, error) {
 
 func (c *cmdInit) Run(cmd *cobra.Command, args []string) error {
 	// Connect to the daemon.
-	m, err := microcluster.App(microcluster.Args{StateDir: c.common.FlagStateDir, Verbose: c.common.FlagLogVerbose, Debug: c.common.FlagLogDebug})
+	m, err := microcluster.App(microcluster.Args{StateDir: c.common.FlagStateDir})
 	if err != nil {
 		return err
 	}
@@ -170,7 +171,7 @@ func (c *cmdInit) Run(cmd *cobra.Command, args []string) error {
 				}
 
 				// Issue the token.
-				token, err := m.NewJoinToken(context.Background(), tokenName)
+				token, err := m.NewJoinToken(context.Background(), tokenName, 3*time.Hour)
 				if err != nil {
 					return err
 				}

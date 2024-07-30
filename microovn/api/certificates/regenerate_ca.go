@@ -24,7 +24,7 @@ var RegenerateCaEndpoint = rest.Endpoint{
 
 // regenerateCaPut implements PUT method for /1.0/ca endpoint. The function issues new CA certificate
 // and triggers re-issue of all service certificates on all MicroOVN cluster members
-func regenerateCaPut(s *state.State, r *http.Request) response.Response {
+func regenerateCaPut(s state.State, r *http.Request) response.Response {
 	var err error
 	responseData := types.NewRegenerateCaResponse()
 
@@ -32,7 +32,7 @@ func regenerateCaPut(s *state.State, r *http.Request) response.Response {
 	if client.IsNotification(r) {
 		// Only one recipient of this request needs to generate new CA
 		logger.Info("Re-issuing CA certificate and private key")
-		err = ovn.GenerateNewCACertificate(s)
+		err = ovn.GenerateNewCACertificate(r.Context(), s)
 		if err != nil {
 			logger.Errorf("Failed to generate new CA certificate: %w", err)
 			responseData.NewCa = false
@@ -49,7 +49,7 @@ func regenerateCaPut(s *state.State, r *http.Request) response.Response {
 		}
 
 		// Bump rest of the cluster members to reissue their certificates with new CA
-		err = cluster.Query(s.Context, true, func(ctx context.Context, c *client.Client) error {
+		err = cluster.Query(r.Context(), true, func(ctx context.Context, c *client.Client) error {
 			logger.Infof("Requesting cluster member at '%s' to re-issue its OVN certificates", c.URL())
 			result, err := microovnClient.RegenerateCA(ctx, c)
 			if err != nil {
@@ -70,13 +70,13 @@ func regenerateCaPut(s *state.State, r *http.Request) response.Response {
 	}
 
 	logger.Info("Re-issuing all local OVN certificates")
-	err = ovn.DumpCA(s)
+	err = ovn.DumpCA(r.Context(), s)
 	if err != nil {
 		logger.Errorf("%w", err)
 		return response.SyncResponse(false, &responseData)
 	}
 
-	reissuedCertificates, err := reissueAllCertificates(s)
+	reissuedCertificates, err := reissueAllCertificates(r.Context(), s)
 	if err != nil {
 		logger.Errorf("Failed to reissue certificates with new CA: %w", err)
 	}

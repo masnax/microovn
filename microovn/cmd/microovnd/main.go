@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/canonical/lxd/shared/logger"
-	"github.com/canonical/microcluster/config"
 	"github.com/canonical/microcluster/microcluster"
-	"github.com/canonical/microcluster/rest"
+	"github.com/canonical/microcluster/rest/types"
 	"github.com/canonical/microcluster/state"
 	"github.com/spf13/cobra"
 
@@ -54,7 +53,7 @@ func (c *cmdDaemon) Command() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "microd",
 		Short:   "Example daemon for MicroCluster - This will start a daemon with a running control socket and no database",
-		Version:  MicroOvnVersion,
+		Version: MicroOvnVersion,
 	}
 
 	cmd.RunE = c.Run
@@ -64,21 +63,32 @@ func (c *cmdDaemon) Command() *cobra.Command {
 
 func (c *cmdDaemon) Run(cmd *cobra.Command, args []string) error {
 
-	m, err := microcluster.App(microcluster.Args{StateDir: c.flagStateDir, Verbose: c.global.flagLogVerbose, Debug: c.global.flagLogDebug})
+	m, err := microcluster.App(microcluster.Args{StateDir: c.flagStateDir})
 	if err != nil {
 		return err
 	}
 
-	h := &config.Hooks{}
+	h := &state.Hooks{}
 	h.PostBootstrap = ovn.Bootstrap
 	h.PreJoin = ovn.Join
-	h.OnNewMember = ovn.Refresh
+	h.OnNewMember = func(ctx context.Context, s state.State, newMember types.ClusterMemberLocal) error {
+		return ovn.Refresh(ctx, s)
+	}
 	h.PreRemove = ovn.Leave
-	h.PostRemove = func(s *state.State, force bool) error { return ovn.Refresh(s) }
+	h.PostRemove = func(ctx context.Context, s state.State, force bool) error { return ovn.Refresh(ctx, s) }
 	h.OnStart = ovn.Start
 
-	m.AddServers([]rest.Server{api.Server})
-	return m.Start(context.Background(), database.SchemaExtensions, api.Extensions(), h)
+	daemonArgs := microcluster.DaemonArgs{
+		Verbose:          c.global.flagLogVerbose,
+		Debug:            c.global.flagLogDebug,
+		Version:          "UNKNOWN",
+		ExtensionsSchema: database.SchemaExtensions,
+		APIExtensions:    api.Extensions(),
+		Hooks:            h,
+		ExtensionServers: api.Server,
+	}
+
+	return m.Start(context.Background(), daemonArgs)
 }
 
 func init() {
