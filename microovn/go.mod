@@ -2,7 +2,7 @@ module github.com/canonical/microovn/microovn
 
 go 1.22.5
 
-replace github.com/canonical/microcluster => /root/go/src/github.com/canonical/microcluster
+replace github.com/canonical/microcluster => github.com/masnax/microcluster v0.0.0-20240730210609-0cba44d36e45
 
 require (
 	github.com/canonical/lxd v0.0.0-20240730172021-8e39e5d4f55f
