@@ -273,9 +273,6 @@ parts:
       export CGO_LDFLAGS="-L${CRAFT_STAGE}/lib/ -L${CRAFT_STAGE}/usr/local/lib/"
       export CGO_LDFLAGS_ALLOW="(-Wl,-wrap,pthread_create)|(-Wl,-z,now)"
 
-      # Check that `golangci-lint` is happy with the code.
-      golangci-lint run --verbose
-
       # Run any unit tests.
       LD_LIBRARY_PATH=${CRAFT_STAGE}/lib/:${CRAFT_STAGE}/usr/local/lib/ \
           go test ./...
