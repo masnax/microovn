@@ -16,14 +16,12 @@ import (
 )
 
 // Refresh will update the existing OVN central and OVS switch configs.
-func Refresh(shutdownCtx context.Context, _ context.Context, s state.State) error {
+func Refresh(_ context.Context, ctx context.Context, s state.State) error {
 	// Don't block the caller on a refresh as we may build a backlog.
-	go func(ctx context.Context, s state.State) {
-		err := refresh(ctx, s)
-		if err != nil {
-			logger.Errorf("Failed to refresh configuration: %v", err)
-		}
-	}(shutdownCtx, s)
+	err := refresh(ctx, s)
+	if err != nil {
+		logger.Errorf("Failed to refresh configuration: %v", err)
+	}
 
 	return nil
 }
